@@ -1,0 +1,22 @@
+{
+  "name": "gifti",
+  "version": "0.0.0",
+  "description": "Seu app para encontrar o melhor presente",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Nicholas M. Dantas",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmdantas/lab.git"
+  },
+  "dependencies": {
+    "body-parser": "^1.16.1",
+    "camelize": "git+https://github.com/nmdantas/camelize.git",
+    "crypto-js": "^3.1.9-1",
+    "express": "^4.14.1",
+    "helmet": "^3.4.0"
+  }
+}
