@@ -6,16 +6,32 @@
 
 'use strict';
 
+// A instancia de Gerenciador de Cache deve ser unico para todo o servidor
+global.CacheManager = require("lru-cache")({
+    max: 500,
+    maxAge: 1000 * 60 * 60
+});
+
+global.CacheManager.set('xptoLoremIpsumAdmin123', {
+    name: 'Nicholas M. Dantas',
+    roles: [
+        'admin'
+    ]
+});
+global.CacheManager.set('xptoLoremIpsum123', {
+    name: 'Tamires S. Mota',
+    roles: [
+        'user'
+    ]
+});
+
 var PORT = process.env.PORT || 1337;
 
 var express      = require('express');
 var bodyParser   = require('body-parser');
 var camelize     = require('camelize');
-var cacheManager = require("lru-cache")({
-    max: 500,
-    maxAge: 1000 * 60 * 60
-});
 var dataAccess   = require('./app/data-access');
+var authorize    = require('./app/security/roles-authorization');
 
 var app = express();
 // Entender como funciona esta linha
@@ -25,10 +41,11 @@ app.use(bodyParser.json());
 // Antes de qualquer requisicao passa por aqui
 // Independente da rota '/*'
 app.all('/*', function (req, res, next) {
-  next();
+    req.headers.Authorization
+    next();
 })
 
-app.get('/api/products', function (req, res, next) {
+app.get('/api/products', authorize('admin'), function (req, res, next) {
     // Este metodo deve chamar o next
     dataAccess.product.selectAll(req, res, next);
 });
@@ -63,7 +80,7 @@ app.use(function(err, req, res, next) {
     res.status(500);
     
     res.json({
-        message: 'Something broke!'
+        message: 'Alguma coisa deu errada!'
     });
 });
 
