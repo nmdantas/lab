@@ -8,10 +8,14 @@
 
 var PORT = process.env.PORT || 1337;
 
-var express    = require('express');
-var bodyParser = require('body-parser');
-var camelize   = require('camelize');
-var dataAccess = require('./app/data-access');
+var express      = require('express');
+var bodyParser   = require('body-parser');
+var camelize     = require('camelize');
+var cacheManager = require("lru-cache")({
+    max: 500,
+    maxAge: 1000 * 60 * 60
+});
+var dataAccess   = require('./app/data-access');
 
 var app = express();
 // Entender como funciona esta linha
