@@ -17,6 +17,7 @@
     "camelize": "git+https://github.com/nmdantas/camelize.git",
     "crypto-js": "^3.1.9-1",
     "express": "^4.14.1",
-    "helmet": "^3.4.0"
+    "helmet": "^3.4.0",
+    "lru-cache": "^4.0.2"
   }
 }
