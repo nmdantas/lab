@@ -59,7 +59,7 @@ var bodyParser  = require('body-parser');
 var compression = require('compression');
 var camelize    = require('camelize');
 var userRouter  = require('./controllers/user');
-var userSocket  = require('./controllers/user-socket')('/socket/v0/user');
+//var userSocket  = require('./controllers/user-socket')('/socket/v0/user');
 
 // Entender como funciona esta linha
 //app.use(bodyParser.urlencoded({ extended : true })); 
@@ -87,11 +87,11 @@ app.use('/api/v0/user', userRouter);
 app.use(function (req, res, next) {
     console.log('[Last Middleware] Time: ', Date.now());
 
-    if (res.content) {
+    //if (res.content) {
         // Nao esta pegando a versao do NPM.
         // Esta pegando a versao do meu github que contem alguns ajustes. Para tratar strings como "LOREM_IPSUM" para loremIpsum
-        res.json(camelize(res.content));
-    }
+    //    res.json(camelize(res.content));
+    //}
 
     next();
 });
@@ -110,15 +110,3 @@ app.use(function(err, req, res, next) {
 
 app.listen(PORT);
 console.log('Server Started...');
-
-process.on('exit', function() {
-    console.log('[Exit]');
-});
-
-process.on('beforeExit', function() {
-    console.log('[Before Exit]');
-});
-
-process.on('disconnect', function() {
-    console.log('[Disconnect]');
-});
