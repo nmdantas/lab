@@ -6,15 +6,16 @@
 
 'use strict';
 
-var connection = null;
+var connectionPool = null;
 
 exports = module.exports = initialize;
 
 /**
  * Expose 'initialize()'.
  */
-function initialize(conn) {
-    connection = conn;
+function initialize(pool) {
+    if (connectionPool == null)
+        connectionPool = pool;
 
     return {
         selectAll: selectAll
@@ -28,13 +29,24 @@ function initialize(conn) {
  * @public
  */
 function selectAll(req, res, next) {
-    connection.query('SELECT * FROM IMPORTACAO_SINTETICA', function (error, results, fields) {
-        if (error) {
-            next(error);
-        } else {
-            res.content = results;
+    // Obtem uma conexao do pool
+    connectionPool.getConnection(function(poolError, connection) {
+        if (poolError) {
+            next(poolError);
 
-            next();
+            return;
         }
+
+        connection.query('SELECT * FROM IMPORTACAO_SINTETICA', function (error, results, fields) {
+            connection.release();
+
+            if (error) {
+                next(error);
+            } else {
+                res.content = results;
+
+                next();
+            }
+        });
     });
 }

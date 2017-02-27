@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head><title>Hello world</title></head>
+    <script src="./node_modules/socket.io-client/dist/socket.io.js"></script>
+    <script>
+        function connect() {
+            var token = document.getElementById('token').value;
+            var queryValue = 'accessToken=' + token;
+            var socket = io('http://localhost:3000/socket/v0/user', { query: queryValue });
+        
+            socket.on('addressReceived', function(data) {
+                document.getElementById('event-type').innerHTML = 'Address Received';
+                document.getElementById('result').innerText = JSON.stringify(data);
+            });
+
+            socket.on('detailsReceived', function(data) {
+                document.getElementById('event-type').innerHTML = 'Details Received';
+                document.getElementById('result').innerText = JSON.stringify(data);
+            });
+
+            socket.on('disconnect', function(data) {
+                document.getElementById('event-type').innerHTML = 'Disconnect';
+                document.getElementById('result').innerText = JSON.stringify(data);
+            });
+        }
+    </script>
+    <body>
+        <div id="event-type"></div>
+        <input id="token" type="text" name="token" value="" style="width: 300px;" placeholder="Enter the access token!">
+        <button type="button" name="button" onclick="connect()">Connect</button>
+        <pre id="result"></pre>
+    </body>
+</html>

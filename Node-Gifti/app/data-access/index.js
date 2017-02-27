@@ -11,26 +11,28 @@
  */
 
 const DEFAULT_CONNECTION_CONFIG = {
-    host     : '198.71.225.61',
-    user     : 'giftiadmin',
-    password : 'Bigorna!1',
-    database : 'swtgiftidb_dev'
+    connectionLimit : 10,
+    host            : '198.71.225.61',
+    user            : 'giftiadmin',
+    password        : 'Bigorna!1',
+    database        : 'swtgiftidb_dev'
 };
 const USER_CONNECTION_CONFIG = {
-    host     : '198.71.225.61',
-    user     : 'useradmin',
-    password : 'Bigorna!1',
-    database : 'swtuserdb_dev'
+    connectionLimit : 10,
+    host            : '198.71.225.61',
+    user            : 'useradmin',
+    password        : 'Bigorna!1',
+    database        : 'swtuserdb_dev'
 }; 
 
 var database   = require('mysql');
 var product    = require('./product');
 var user       = require('./user');
 // Connections
-var connection = database.createConnection(DEFAULT_CONNECTION_CONFIG);
-var userConnection = database.createConnection(USER_CONNECTION_CONFIG);
+var connectionPool = database.createPool(DEFAULT_CONNECTION_CONFIG);
+var userConnectionPool = database.createPool(USER_CONNECTION_CONFIG);
 
 module.exports = {
-    user: user(userConnection),
-    product: product(connection)
+    user: user(userConnectionPool),
+    product: product(connectionPool)
 };

@@ -15,9 +15,11 @@
   "dependencies": {
     "body-parser": "^1.16.1",
     "camelize": "git+https://github.com/nmdantas/camelize.git",
+    "compression": "^1.6.2",
     "crypto-js": "^3.1.9-1",
     "express": "^4.14.1",
     "helmet": "^3.4.0",
-    "lru-cache": "^4.0.2"
+    "lru-cache": "^4.0.2",
+    "socket.io": "^1.7.3"
   }
 }

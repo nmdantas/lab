@@ -22,7 +22,7 @@ function generateToken(message) {
               generateTimeStamp() +
               generateNonce();
 
-    return crypto.SHA1(message, key).toString().toUpperCase();
+    return crypto.SHA1(message + key).toString();
 }
 
 function generateTimeStamp() {
