@@ -36,7 +36,7 @@ global.CacheManager = require("lru-cache")({
 
 // Middleware especifico para esta rota (Router)
 router.use(function (req, res, next) {
-  console.log('[User Router] Time: ', Date.now());
+  console.log('[User Router] Time: ', new Date().toString());
 
   next();
 });
@@ -71,7 +71,7 @@ function getUserAccess(req, res, next) {
 }
 
 function formatResponse(req, res, next) {
-    var results = res.content;
+    var results = req.data;
     var formattedResponse = {
         user: {},
         roles: [],
@@ -96,10 +96,20 @@ function formatResponse(req, res, next) {
         // Apenas adiciona os menus que não possuem sub-menus
         // Os sub-menus serao adicionados na expressao 'where' na property 'children'
         if (results[i].MENU_PARENT_ID === null) {
-            var subMenus = []; //results.where({ MENU_PARENT_ID: results[i].MENU_ID });
+            var subMenus = results.where({ MENU_PARENT_ID: results[i].MENU_ID }).select({
+                "id" : "MENU_ID",
+                "path" : "MENU_PATH",
+                "name" : "MENU_NAME",
+                "description" : "MENU_DESCRIPTION",
+                "parentId" : "MENU_PARENT_ID",
+                "displayOrder" : "MENU_DISPLAY_ORDER",
+                "icon" : "MENU_ICON",
+                "children" : []
+            });
 
-            for (var j = 0; j < results.length; j++) {
-                if (results[j].MENU_PARENT_ID === results[i].MENU_ID) {
+            // Percorre afim de encontrar os sub-menus
+            /*for (var j = 0; j < results.length; j++) {
+                if (results[j].MENU_PARENT_ID !== null && results[j].MENU_PARENT_ID === results[i].MENU_ID) {
                     subMenus.push({
                         id: results[j].MENU_ID,
                         path: results[j].MENU_PATH,
@@ -108,10 +118,10 @@ function formatResponse(req, res, next) {
                         parentId: results[j].MENU_PARENT_ID,
                         displayOrder: results[j].MENU_DISPLAY_ORDER,
                         icon: results[j].MENU_ICON,
-                        children: []        
+                        children: []
                     })
                 }
-            }
+            }*/
             
             formattedResponse.access.push({
                 id: results[i].MENU_ID,
@@ -126,19 +136,21 @@ function formatResponse(req, res, next) {
         }
     }
 
-    res.content = formattedResponse;
+    req.data = formattedResponse;
 
     next();
 }
 
 function createAccessToken(req, res, next) {
     var accessToken = signature(req.body.username);
-    res.content.accessToken = accessToken;
+    req.data.accessToken = accessToken;
 
-    global.CacheManager.set(accessToken, res.content, TIMEOUT);
+    global.CacheManager.set(accessToken, req.data, TIMEOUT);
 
-    dataAccess.user.session.delete(res.content);
-    dataAccess.user.session.create(res.content);
+    dataAccess.user.session.delete(req.data);
+    dataAccess.user.session.create(req.data);
+
+    res.json(req.data);
 
     next();
 }

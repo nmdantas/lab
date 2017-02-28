@@ -6,51 +6,9 @@
 
 'use strict';
 
-// Solucao temporaria, não é ideal modificar o prototype de um tipo 'primitivo'
-Array.prototype.where = function (predicate) {
-    var results = [];
-
-    // Percorre todas as chaves passadas na pesquisa e as procurara dentro da coleção
-    for (var i = 0; i < this.length; i++) {
-        var match = true;
-        var element = this[i];
-                
-        for (var key in predicate) {
-            match &= element[key] && element[key] === predicate[key];
-        }
-
-        // Caso tenha encontrado o elemento aborta o looping e retorna verdadeiro
-        if (match) {
-            results.push(element);
-        }
-    }
-    
-    return results;
-}
-
-Array.prototype.any = function (predicate) {
-    // Caso o predicado passado for uma string utiliza a função nativa 'indexOf'
-    if (typeof predicate === 'string' || typeof predicate === 'number') {
-        return this.indexOf(predicate) > -1;
-    }
-
-    // Percorre todas as chaves passadas na pesquisa e as procurara dentro da coleção
-    for (var i = 0; i < this.length; i++) {
-        var match = true;
-        var element = this[i];
-                
-        for (var key in predicate) {
-            match &= element[key] && element[key] === predicate[key];
-        }
-
-        // Caso tenha encontrado o elemento aborta o looping e retorna verdadeiro
-        if (match) {
-            return true;
-        }
-    }
-    
-    return false;
-}
+// Este modulo nao possui retorno, ele é chamado apenas para carregar os
+// metodos de extensao do tipo primitivo Array
+require('./common/linq');
 
 var PORT = process.env.PORT || 1337;
 
@@ -71,7 +29,7 @@ app.use(compression());
 // Antes de qualquer requisicao passa por aqui
 // Independente da rota '/*'
 app.all('/*', function (req, res, next) {
-    console.log('[First Middleware] Time: ', Date.now());
+    console.log('[First Middleware] Time: ', new Date().toString());
 
     next();
 });
@@ -85,12 +43,12 @@ app.use('/api/v0/user', userRouter);
 // Pode ser um jeito de evitar usar um formatador
 // So formatar para camelcase
 app.use(function (req, res, next) {
-    console.log('[Last Middleware] Time: ', Date.now());
+    console.log('[Last Middleware] Time: ', new Date().toString());
 
-    //if (res.content) {
+    //if (req.data) {
         // Nao esta pegando a versao do NPM.
         // Esta pegando a versao do meu github que contem alguns ajustes. Para tratar strings como "LOREM_IPSUM" para loremIpsum
-    //    res.json(camelize(res.content));
+    //    res.json(camelize(req.data));
     //}
 
     next();

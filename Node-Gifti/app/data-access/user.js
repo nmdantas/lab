@@ -75,7 +75,7 @@ function get(req, res, next) {
                 if (results.length === 0) {
                     res.sendStatus(403);
                 } else {
-                    res.content = results;
+                    req.data = results;
                 }
 
                 next();
