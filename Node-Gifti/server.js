@@ -9,13 +9,14 @@
 // Este modulo nao possui retorno, ele é chamado apenas para carregar os
 // metodos de extensao do tipo primitivo Array
 require('./common/linq');
+require('./common/constants');
 
 var PORT = process.env.PORT || 1337;
 
 var app         = require('express')();
 var bodyParser  = require('body-parser');
 var compression = require('compression');
-var camelize    = require('camelize');
+var log         = require('./services/log')();
 var userRouter  = require('./controllers/user');
 //var userSocket  = require('./controllers/user-socket')('/socket/v0/user');
 
@@ -55,16 +56,22 @@ app.use(function (req, res, next) {
 });
 
 // Middleware de erro
-app.use(function(err, req, res, next) {  
-    console.log('[Error Middleware] Time: ', Date.now());
-    console.log(err);
+app.use(log.middleware());
+// app.use(function(err, req, res, next) {  
+//     console.log('[Error Middleware] Time: ', Date.now());
+//     console.log(err);
 
-    res.status(500);
+//     res.status(500);
     
-    res.json({
-        message: 'Alguma coisa deu errada!'
-    });
-});
+//     res.json({
+//         message: 'Alguma coisa deu errada!'
+//     });
+// });
 
 app.listen(PORT);
 console.log('Server Started...');
+
+process.on('uncaughtException', (err) => {
+    console.log('[Erro Geral]');
+    console.log(err);
+});

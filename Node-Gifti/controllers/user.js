@@ -13,6 +13,7 @@ var crypto      = require('crypto-js');
 var dataAccess  = require('./../app/data-access');
 var signature   = require('./../security/signature');
 var authorize   = require('./../security/roles-authorization');
+var logManager  = require('./../services/log')();
 
 // A instancia de Gerenciador de Cache deve ser unico para todo o servidor
 global.CacheManager = require("lru-cache")({
@@ -37,43 +38,120 @@ global.CacheManager = require("lru-cache")({
 // Middleware especifico para esta rota (Router)
 router.use(function (req, res, next) {
   console.log('[User Router] Time: ', new Date().toString());
+  logManager.applicationId(req.body.applicationId);
 
   next();
 });
 
-router.post('/login', checkSession, getUserAccess, formatResponse, createAccessToken);
+router.post('/login', preValidation, checkPassword, checkSession, getUserAccess, formatResponse, createAccessToken);
+
+function preValidation(req, res, next) {
+    if (!req.body.username || !req.body.password) {
+        var error = new Error();
+        error.code = 'US004';
+
+        next(error);
+    } else {
+        next();
+    }
+}
+
+function checkPassword(req, res, next) {
+    var successCallback = function(result) {
+        req.data = result;
+        
+        next();
+    }
+
+    var errorCallback = function (error) {        
+        error = error || new Error();
+        error.code = 'US001';
+
+        logManager.saveError(error, 'userController.login');
+                
+        next(error);
+    }
+
+    var userInfo = {
+        username: req.body.username,
+        password: req.body.password
+    }
+
+    dataAccess.user.checkPassword(userInfo, successCallback, errorCallback);
+}
 
 function checkSession(req, res, next) {
-    // Este metodo do data-access deve chamar o next
-    dataAccess.user.session.exists(req, res, next);
+    var successCallback = function(result) {
+        req.accessToken = result;
+
+        next();
+    }
+
+    var errorCallback = function (error) {
+        logManager.saveError(error, 'userController.login');
+        
+        next(error);
+    }
+
+    var userInfo = {
+        username: req.body.username,
+        applicationId: req.body.applicationId
+    }
+
+    dataAccess.user.session.exists(userInfo, successCallback, errorCallback);
 }
 
 function getUserAccess(req, res, next) {
     // Caso possua esta propriedade na requisicao significa que ja existe sessao    
     if (req.accessToken && global.CacheManager.has(req.accessToken)) {
-        console.log('Get User Access From Cache');
+        //logManager.saveDebug('Get User Access From Cache', 'userController.login');
+
         var sessionInfo = global.CacheManager.get(req.accessToken);
         sessionInfo.update = true;
 
         // Atualiza o Cache
-        global.CacheManager.set(req.accessToken, sessionInfo, TIMEOUT);
-
-        console.log("[Cache Length]: " + global.CacheManager.length);
+        global.CacheManager.set(req.accessToken, sessionInfo, req.body.keepAlive ? Infinity : TIMEOUT);
 
         res.json(sessionInfo);
-        // Esse return garante que nenhum dos demais Middlewares serao chamados
-        return;
-    }
+    } else {
+        //logManager.saveDebug('Get User Access From Database', 'userController.login');
 
-    console.log('Get User Access From Database');
-    // Este metodo do data-access deve chamar o next
-    dataAccess.user.get(req, res, next);
+        var successCallback = function(results) {
+            // Se nao houver retorno significa que o usuario não tem
+            // permissão para acessar a aplicação
+            if (results.length === 0) {                
+                var error = new Error();
+                error.code = 'US009';
+
+                next(error);                
+            } else {
+                req.data = results;
+                next();
+            }
+        }
+
+        var errorCallback = function (error) {
+            logManager.saveError(error, 'userController.login');
+            next(error);
+        }
+
+        var userInfo = {
+            id: req.data,
+            applicationId: req.body.applicationId
+        }
+        
+        // Este metodo do data-access deve chamar o next
+        dataAccess.user.get(userInfo, successCallback, errorCallback);
+    }
 }
 
 function formatResponse(req, res, next) {
     var results = req.data;
     var formattedResponse = {
-        user: {},
+        user: {
+            details: {},
+            address: {}
+        },
         roles: [],
         access: [],
         application: {
@@ -85,6 +163,22 @@ function formatResponse(req, res, next) {
     // Caso contrario seria resultado 403
     formattedResponse.user.id = results[0].USER_ID;
     formattedResponse.user.email = results[0].USER_EMAIL;
+    
+    formattedResponse.user.details.name = results[0].USER_NAME;
+    formattedResponse.user.details.lastname = results[0].USER_LASTNAME;
+    formattedResponse.user.details.nickname = results[0].USER_NICKNAME;
+    formattedResponse.user.details.birthday = results[0].USER_BIRTHDAY;
+    formattedResponse.user.details.document = results[0].USER_DOCUMENT;
+
+    formattedResponse.user.address.zipCode = results[0].ADDRESS_ZIPCODE;
+    formattedResponse.user.address.address = results[0].ADDRESS_ADDRESS;
+    formattedResponse.user.address.district = results[0].ADDRESS_DISTRICT;
+    formattedResponse.user.address.city = results[0].ADDRESS_CITY;
+    formattedResponse.user.address.state = results[0].ADDRESS_STATE;
+    formattedResponse.user.address.latitude = results[0].ADDRESS_LATITUDE;
+    formattedResponse.user.address.longitude = results[0].ADDRESS_LONGITUDE;
+    formattedResponse.user.address.number = results[0].ADDRESS_NUMBER;
+    formattedResponse.user.address.complement = results[0].ADDRESS_COMPLEMENT;
 
     for (var i = 0; i < results.length; i++) {
         // Roles de Acesso
@@ -95,7 +189,7 @@ function formatResponse(req, res, next) {
         // Menus de Acesso
         // Apenas adiciona os menus que não possuem sub-menus
         // Os sub-menus serao adicionados na expressao 'where' na property 'children'
-        if (results[i].MENU_PARENT_ID === null) {
+        if (results[i].MENU_PARENT_ID === null && !formattedResponse.access.any({ id: results[i].MENU_ID })) {
             var subMenus = results.where({ MENU_PARENT_ID: results[i].MENU_ID }).select({
                 "id" : "MENU_ID",
                 "path" : "MENU_PATH",
@@ -106,22 +200,6 @@ function formatResponse(req, res, next) {
                 "icon" : "MENU_ICON",
                 "children" : []
             });
-
-            // Percorre afim de encontrar os sub-menus
-            /*for (var j = 0; j < results.length; j++) {
-                if (results[j].MENU_PARENT_ID !== null && results[j].MENU_PARENT_ID === results[i].MENU_ID) {
-                    subMenus.push({
-                        id: results[j].MENU_ID,
-                        path: results[j].MENU_PATH,
-                        name: results[j].MENU_NAME,
-                        description: results[j].MENU_DESCRIPTION,
-                        parentId: results[j].MENU_PARENT_ID,
-                        displayOrder: results[j].MENU_DISPLAY_ORDER,
-                        icon: results[j].MENU_ICON,
-                        children: []
-                    })
-                }
-            }*/
             
             formattedResponse.access.push({
                 id: results[i].MENU_ID,
@@ -145,7 +223,7 @@ function createAccessToken(req, res, next) {
     var accessToken = signature(req.body.username);
     req.data.accessToken = accessToken;
 
-    global.CacheManager.set(accessToken, req.data, TIMEOUT);
+    global.CacheManager.set(accessToken, req.data, req.body.keepAlive ? Infinity : TIMEOUT);
 
     dataAccess.user.session.delete(req.data);
     dataAccess.user.session.create(req.data);

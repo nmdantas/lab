@@ -18,9 +18,10 @@ function initialize(pool) {
         connectionPool = pool;
 
     return {
-        get: get,
+        get: get,        
         getAddress: getAddress,
         getDetails: getDetails,
+        checkPassword: checkPassword,
         session: {
             exists: checkSession, 
             create: createSession,
@@ -35,22 +36,32 @@ function initialize(pool) {
  * @return {UserEntity[]}
  * @public
  */
-function get(req, res, next) {
+function get(userInfo, successCallback, errorCallback) {
     // Obtem uma conexao do pool
     connectionPool.getConnection(function(poolError, connection) {
         if (poolError) {
-            next(poolError);
+            errorCallback(poolError);
 
             return;
         }
 
-        var username = req.body.username;
-        var password = req.body.password;
-        var keepAlive = req.body.keepAlive || false;
-        var applicationId = req.body.applicationId;
         var query = 'SELECT	USER_ID, ' +
                     '       USER_EMAIL, ' +
                     '       USER_ROLE, ' +
+                    '       USER_NAME, ' +
+                    '       USER_LASTNAME, ' +
+                    '       USER_NICKNAME, ' +
+                    '       USER_BIRTHDAY, ' +
+                    '       USER_DOCUMENT, ' +
+                    '       ADDRESS_ZIPCODE, ' +
+                    '       ADDRESS_ADDRESS, ' +
+                    '       ADDRESS_DISTRICT, ' +
+                    '       ADDRESS_CITY, ' +
+                    '       ADDRESS_STATE, ' +
+                    '       ADDRESS_LATITUDE, ' +
+                    '       ADDRESS_LONGITUDE, ' +
+                    '       ADDRESS_NUMBER, ' +
+                    '       ADDRESS_COMPLEMENT, ' +
                     '       MENU_ID, ' +
                     '       MENU_PATH, ' +
                     '       MENU_NAME, ' +
@@ -59,26 +70,16 @@ function get(req, res, next) {
                     '       MENU_DISPLAY_ORDER, ' +
                     '       MENU_ICON ' +
                     'FROM swtuserdb_dev.VIEW_USER_ACCESS ' +
-                    'WHERE USER_EMAIL = ? ' +
-                        'AND USER_PASSWORD = ? ' +
+                    'WHERE USER_ID = ? ' +
                         'AND APP_ID = ?'
 
-        connection.query(query, [username, password, applicationId], function (error, results, fields) {
+        connection.query(query, [userInfo.id, userInfo.applicationId], function (error, results, fields) {
             connection.release();
 
             if (error) {
-                next(error);
+                errorCallback(error);
             } else {
-
-                // Se nao houver retorno significa que o usuario não tem
-                // permissão para acessar a aplicação
-                if (results.length === 0) {
-                    res.sendStatus(403);
-                } else {
-                    req.data = results;
-                }
-
-                next();
+                successCallback(results);
             }
         });
     });
@@ -160,36 +161,66 @@ function getDetails(userId, callback) {
     });
 }
 
-function checkSession(req, res, next) {
+function checkPassword(userInfo, successCallback, errorCallback) {
     // Obtem uma conexao do pool
     connectionPool.getConnection(function(poolError, connection) {
         if (poolError) {
-            next(poolError);
+            errorCallback(poolError);
 
             return;
         }
 
-        var username = req.body.username;
-        var applicationId = req.body.applicationId;
+        var query = 'SELECT	ID ' +
+                    'FROM swtuserdb_dev.USER ' +
+                    'WHERE EMAIL = ? ' +
+                        'AND TOKEN = ?'
+
+        connection.query(query, [userInfo.username, userInfo.password], function (error, results, fields) {
+            connection.release();
+
+            if (error) {
+                errorCallback(error);
+            } else {
+
+                // Se nao houver retorno significa que o usuario ou a senha esta invalida
+                if (results.length > 0) {
+                    successCallback(results[0].ID);
+                } else {
+                    errorCallback();
+                }
+            }
+        });
+    });
+}
+
+function checkSession(userInfo, successCallback, errorCallback) {
+    // Obtem uma conexao do pool
+    connectionPool.getConnection(function(poolError, connection) {
+        if (poolError) {
+            errorCallback(poolError);
+
+            return;
+        }
+
         var query = 'SELECT	SESSION_KEY ' +
                     'FROM swtuserdb_dev.USER_SESSION ' +
                     'WHERE EMAIL = ? ' +
                         'AND APP_ID = ?'
 
-        connection.query(query, [username, applicationId], function (error, results, fields) {
+        connection.query(query, [userInfo.username, userInfo.applicationId], function (error, results, fields) {
             connection.release();
 
             if (error) {
-                next(error);
+                errorCallback(error);
             } else {
 
                 // Se nao houver retorno significa que o usuario não tem
                 // permissão para acessar a aplicação
                 if (results.length > 0) {
-                    req.accessToken = results[0].SESSION_KEY;
+                    successCallback(results[0].SESSION_KEY);
+                } else {
+                    successCallback(null);
                 }
-
-                next();
             }
         });
     });
