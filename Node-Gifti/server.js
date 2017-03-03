@@ -46,6 +46,9 @@ app.use('/api/v0/user', userRouter);
 app.use(function (req, res, next) {
     console.log('[Last Middleware] Time: ', new Date().toString());
 
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,GET,PUT,POST,DELETE');
+
     //if (req.data) {
         // Nao esta pegando a versao do NPM.
         // Esta pegando a versao do meu github que contem alguns ajustes. Para tratar strings como "LOREM_IPSUM" para loremIpsum
