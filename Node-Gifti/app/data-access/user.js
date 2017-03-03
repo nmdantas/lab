@@ -226,11 +226,11 @@ function checkSession(userInfo, successCallback, errorCallback) {
     });
 }
 
-function createSession(sessionInfo) {
+function createSession(sessionInfo, successCallback, errorCallback) {
     // Obtem uma conexao do pool
     connectionPool.getConnection(function(poolError, connection) {
-        if (poolError) {
-            next(poolError);
+        if (poolError && errorCallback) {
+            errorCallback(poolError);
 
             return;
         }
@@ -249,16 +249,18 @@ function createSession(sessionInfo) {
         connection.query(command, args, function(error, results, fields) {
             connection.release();
 
-            // Pensar no tratamento de erro
+            if (successCallback) {
+                successCallback();
+            }
         }); 
     });
 }
 
-function deleteSession(sessionInfo) {
+function deleteSession(sessionInfo, successCallback, errorCallback) {
     // Obtem uma conexao do pool
     connectionPool.getConnection(function(poolError, connection) {
-        if (poolError) {
-            next(poolError);
+        if (poolError && errorCallback) {
+            errorCallback(poolError);
 
             return;
         }
@@ -268,7 +270,9 @@ function deleteSession(sessionInfo) {
         connection.query(command, [sessionInfo.user.id], function(error, results, fields) {
             connection.release();
 
-            console.log('Delete Session: deleted ' + results.affectedRows + ' rows');
+            if (successCallback) {
+                successCallback();
+            }
         }); 
     });    
 }
