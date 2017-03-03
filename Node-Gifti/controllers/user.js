@@ -45,6 +45,8 @@ router.use(function (req, res, next) {
 
 router.post('/login', preValidation, checkPassword, checkSession, getUserAccess, formatResponse, createAccessToken);
 
+router.post('/logout', logout);
+
 function preValidation(req, res, next) {
     if (!req.body.username || !req.body.password) {
         var error = new Error();
@@ -231,6 +233,43 @@ function createAccessToken(req, res, next) {
     res.json(req.data);
 
     next();
+}
+
+function logout(req, res, next) {
+    var authorization = req.headers.authorization || '';
+
+    var innerNextFunction = function(message) {
+        res.json({
+            message: message
+        });
+
+        next();
+    };
+
+    // Verifica se há o token no header
+    if (authorization.startsWith('Basic')) {
+        var accessToken = authorization.replace(/Basic\s*/ig, '');
+
+        if (global.CacheManager.has(accessToken)) {
+            var userData = global.CacheManager.get(accessToken);
+            
+            var successCallback = function() {
+                global.CacheManager.del(accessToken);
+
+                innerNextFunction('Farwell');
+            };
+
+            var errorCallback = function() {
+                innerNextFunction('Error deleting session');
+            };
+
+            dataAccess.user.session.delete(userData, successCallback, errorCallback);
+        } else {
+            innerNextFunction('Token not found');
+        }       
+    } else {
+        innerNextFunction('Invalid Header');
+    }
 }
 
 module.exports = router;
