@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html ng-app="benchmarkApp">
+<head>
+	<title>Benchmark</title>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.2/angular.min.js"></script>
+	<style>
+		table, th, td {
+    		border: 1px solid black;
+		    border-collapse: collapse;
+		}
+		th, td {
+		    padding: 5px;
+		    text-align: center;
+		}
+		table {
+		    width: 100%;
+		}
+	</style>
+</head>
+<body ng-controller="benchmarkController as controller">
+	<div id="test">
+		<i>Servidor:</i>
+		<select ng-model="controller.selectedServer">
+			<option value="1">GoDaddy</option>
+			<option value="2">Google Cloud</option>
+		</select>
+		<br />
+
+		<i>Número Chamadas:</i>
+		<input type="number" ng-model="controller.parameter.limit" ng-disabled="controller.parameter.processing">
+		<br />
+
+		<i>Lapso Por Chamada (Interval):</i>
+		<input type="number" ng-model="controller.parameter.lapse" ng-disabled="controller.parameter.processing">
+		<br />
+		<input type="button" value="Iniciar Teste" ng-click="controller.initTest()" ng-disabled="!controller.selectedServer">
+	</div>
+	<hr />
+	<div id="resume">
+		<i>Início:</i>
+		<label>{{controller.total.begin}}</label>
+		<br />
+
+		<i>Fim:</i>
+		<label>{{controller.total.end}}</label>
+		<br />
+
+		<i>Número Chamadas Efetuadas:</i>
+		<label>{{controller.total.calls}}</label>
+		<br />
+		
+		<i>Lapso Total (Desprezível):</i>
+		<label>{{controller.total.lapse}} (ms) | {{controller.total.lapse / 1000}} (s) | {{controller.total.lapse / 1000 / 60}} (min)</label>
+		<br />
+		
+		<i>Tempo Decorrido Total:</i>
+		<label>{{controller.total.elapsed}} (ms) | {{controller.total.elapsed / 1000}} (s) | {{controller.total.elapsed / 1000 / 60}} (min)</label>
+		<br />
+
+		<i>Soma Tempo Chamada:</i>
+		<label>{{controller.total.sum}} (ms) | {{controller.total.sum / 1000}} (s) | {{controller.total.sum / 1000 / 60}} (min)</label>
+		<br />
+
+		<i>Tempo Médio Chamada:</i>
+		<label>{{controller.total.average}} (ms) | {{controller.total.average / 1000}} (s) | {{controller.total.average / 1000 / 60}} (min)</label>
+		<br />
+	</div>
+	<hr />
+	<div id="statistic">
+		<i>n:</i>
+		<label>{{controller.statistics.n}}</label>
+		<br />
+
+		<i>k:</i>
+		<label>{{controller.statistics.k}}</label>
+		<br />
+
+		<i>max:</i>
+		<label>{{controller.statistics.max}}</label>
+		<br />
+
+		<i>min:</i>
+		<label>{{controller.statistics.min}}</label>
+		<br />
+
+		<i>a:</i>
+		<label>{{controller.statistics.a}}</label>
+		<br />
+
+		<i>h:</i>
+		<label>{{controller.statistics.h}}</label>
+		<br />
+
+		<table>
+			<thead>
+				<tr>
+					<th>Classe</th>
+					<th>Intervalo</th>
+					<th>Frequência</th>
+					<th>Percentagem</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="data in controller.statistics.data">
+					<td>{{data.class}}</td>
+					<td>{{data.interval}}</td>
+					<td>{{data.frequency}}</td>
+					<td>{{data.percentage}} %</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>	
+	<hr />
+	<div id="details">
+		<table>
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Chamada</th>
+					<th>Token</th>
+					<th>Inicio</th>
+					<th>Fim</th>
+					<th>Tempo Decorrido (ms)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="detail in controller.details">
+					<td>{{$index + 1}}</td>
+					<td>{{detail.index}}</td>
+					<td>{{detail.token}}</td>
+					<td>{{detail.begin}}</td>
+					<td>{{detail.end}}</td>
+					<td>{{detail.elapsed}}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>	
+</body>
+
+<script type="text/javascript">
+	(function(ng) {
+		'use strict';
+
+		ng.module('benchmarkApp', []).controller('benchmarkController', benchmarkController);
+
+		benchmarkController.$inject = ['$http'];
+
+		function benchmarkController($http) {
+			var self = this;
+
+			var servers = {
+				'1': 'http://192.169.175.187:1337',
+				'2': 'https://fabbrika-160320.appspot.com'
+			};
+
+			var route = '/api/v0/user/login';
+			var appToken = 'NTAwNDU0MzgxRDU4OTg2NUI1OEU=';
+			var body = {
+				username: 'n.moraes.dantas@gmail.com',
+				password: '123',
+				keepAlive: true,
+				applicationId: 5
+			};
+
+			self.selectedServer = 0;
+			self.resume = {};
+			self.details = [];
+			self.statistics = {
+				n: 0,
+				k: 0,
+				max: 0,
+				min: 0,
+				a: 0,
+				h: 0,
+				data: []
+			};
+			self.total = {
+				begin: null,
+				end: null,
+				calls: 0,
+				elapsed: 0,
+				lapse: 0,
+				sum: 0,
+				average: 0
+			};
+			self.parameter = {
+				limit: 50,
+				lapse: 500,
+				processing: false
+			};
+
+			self.initTest = function() {
+				self.resume = {};
+				self.details = [];
+				self.statistics = {
+					n: 0,
+					k: 0,
+					max: 0,
+					min: 0,
+					a: 0,
+					h: 0,
+					data: []
+				};
+				self.total = {
+					begin: null,
+					end: null,
+					calls: 0,
+					elapsed: 0,
+					lapse: 0,
+					sum: 0,
+					average: 0
+				};				
+
+				var url = servers[self.selectedServer] + route;
+				var config = {
+	                headers: {
+	                    'Content-Type': 'application/json',
+	                    'Authorization': 'App ' + appToken
+	                }
+	            };
+
+				self.total.begin = new Date();
+				self.parameter.processing = true;
+
+				var i = 0;
+
+				var interval = setInterval(function() {
+					if (i < self.parameter.limit) {
+						config.index = i;
+						config.key = (new Date()).getTime();
+
+						$http.post(url, body, config).then(successCallback, errorCallback);	
+
+						i++;
+					} else {
+						clearInterval(interval);
+					}
+				}, self.parameter.lapse);
+				// for (var i = 0; i < self.parameter.limit; i ++) {
+				// 	config.index = i;
+				// 	config.key = (new Date()).getTime();
+
+				// 	$http.post(url, body, config).then(successCallback, errorCallback);
+				// }
+			}
+
+			function successCallback(response) {
+				var begin = new Date(response.config.key);
+				var end = new Date();
+				var detail = {
+					index: response.config.index,
+					token: response.data.accessToken,
+					begin: begin,
+					end: end,
+					elapsed: end - begin 
+				};
+
+				self.details.push(detail);
+				self.total.lapse += self.parameter.lapse;
+				self.total.sum += detail.elapsed;
+
+				if (++self.total.calls == self.parameter.limit) {
+					self.total.end = new Date();
+					self.total.elapsed = self.total.end - self.total.begin - self.total.lapse;
+					self.total.average = self.total.sum / self.total.calls;
+
+					self.parameter.processing = false;
+
+					var entries = [];
+					
+					for (var i = 0; i < self.details.length; i++) {
+						entries.push(self.details[i].elapsed);
+					}
+
+					self.statistics = calculateStatistic(entries);
+				}
+			}
+
+			function errorCallback(response) {
+				console.log(response);
+			}
+
+
+			function calculateStatistic(entries) {
+				var statistics = {
+					n: 0,
+					k: 0,
+					max: 0,
+					min: 0,
+					a: 0,
+					h: 0,
+					data: []
+				};				
+				var n = statistics.n = entries.length;
+				var k1 = Math.sqrt(n);
+				var k2 = 1 + 3.3 * Math.log10(n);
+				var k = statistics.k = parseInt(Math.max(k1, k2));
+				var max = statistics.max = Math.max.apply(null, entries);
+				var min = statistics.min = Math.min.apply(null, entries);
+				var a = statistics.a = max - min;
+				var h = statistics.h = Math.trunc(a / k) + 1;
+				var from = min;
+				var to = min + h - 1;
+
+				for (var i = 1; i <= k; i++) {
+					var interval = [];
+					interval.push(from);
+					interval.push(to);
+					
+					from += h;
+					to += h;
+
+					statistics.data.push({
+						class: i,
+						interval: interval,
+						frequency: 0,
+						percentage: 0.0
+					});
+				}
+
+				for (var i = 0; i < n; i++) {
+					var index = Math.trunc((entries[i] - min) / h);
+
+					statistics.data[index].frequency++;
+					statistics.data[index].percentage = (statistics.data[index].frequency / n * 100.00).toFixed(2);
+				}
+
+				return statistics;
+			}
+		}
+	})(angular);
+</script>
+
+</html>
