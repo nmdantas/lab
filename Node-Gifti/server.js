@@ -32,6 +32,10 @@ app.use(compression());
 app.all('/*', function (req, res, next) {
     console.log('[First Middleware] Time: ', new Date().toString());
 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,GET,PUT,POST,DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Origin, Content-Type, Accept, X-Requested-With, Accept-Encoding');
+
     next();
 });
 
@@ -45,10 +49,6 @@ app.use('/api/v0/user', userRouter);
 // So formatar para camelcase
 app.use(function (req, res, next) {
     console.log('[Last Middleware] Time: ', new Date().toString());
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,GET,PUT,POST,DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Origin, Content-Type, Accept, X-Requested-With, Accept-Encoding');
 
     //if (req.data) {
         // Nao esta pegando a versao do NPM.
@@ -75,7 +75,7 @@ app.use(log.middleware());
 app.get('/', function(req, res) {
     res.json({
         api: 'swt',
-        version: 'v0.0.1'
+        version: 'v0.0.2'
     });
 });
 app.listen(PORT);
