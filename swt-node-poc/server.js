@@ -13,12 +13,16 @@ require('./common/constants');
 
 var PORT = process.env.PORT || 1337;
 
-var app         = require('express')();
+var express     = require('express');
 var bodyParser  = require('body-parser');
 var compression = require('compression');
 var log         = require('./services/log')();
 var userRouter  = require('./controllers/user');
 //var userSocket  = require('./controllers/user-socket')('/socket/v0/user');
+
+var app = express();
+
+app.use('/public', express.static(__dirname + '/benchmark'));
 
 // Entender como funciona esta linha
 //app.use(bodyParser.urlencoded({ extended : true })); 
@@ -75,7 +79,7 @@ app.use(log.middleware());
 app.get('/', function(req, res) {
     res.json({
         api: 'swt',
-        version: 'v0.0.2'
+        version: 'v0.0.3'
     });
 });
 app.listen(PORT);

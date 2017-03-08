@@ -23,6 +23,7 @@
 		<select ng-model="controller.selectedServer">
 			<option value="1">GoDaddy</option>
 			<option value="2">Google Cloud</option>
+			<option value="3">Bluemix</option>
 		</select>
 		<br />
 
@@ -150,7 +151,8 @@
 
 			var servers = {
 				'1': 'http://192.169.175.187:1337',
-				'2': 'https://fabbrika-160320.appspot.com'
+				'2': 'https://fabbrika-160320.appspot.com',
+				'3': 'https://swt-api.mybluemix.net'
 			};
 
 			var route = '/api/v0/user/login';
