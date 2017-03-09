@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br" ng-app="benchmarkApp">
+<head>
+	<meta charset="utf-8" />
+    <title>Benchmark</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+	<link rel="stylesheet" href="../css/bootstrap.min.css">
+	<link rel="icon" href="favicon.png" type="image/png" />
+
+	<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.2/angular.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js"></script>
+
+	<script type="text/javascript" src="../js/app.js"></script>
+</head>
+<body ng-controller="benchmarkController as controller">
+	<!-- MENU -->
+	<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a href="javascript:void()" class="navbar-brand">Benchmark</a>
+          <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-main">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div class="navbar-collapse collapse" id="navbar-main">          
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="javascript:void()" target="_blank">Fabbrika</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+	<div class="container">
+		<div class="page-header" id="banner">
+			<div class="row">
+				<div class="col-lg-8 col-md-7 col-sm-6">
+				<h1>Login</h1>
+					<p class="lead">Análise de Performance</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-lg-6">
+				<div class="well bs-component">
+					<form class="form-horizontal">
+						<fieldset>
+							<legend>Dados</legend>
+
+							<div class="form-group">
+								<label for="selectServer" class="col-lg-2 control-label">Servidor</label>
+								<div class="col-lg-10">
+									<select class="form-control" id="selectServer" ng-model="controller.selectedServer">
+										<option ng-repeat="server in controller.servers" value="{{$index + 1}}">{{server.name}}</option>
+									</select>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="inputCalls" class="col-lg-2 control-label">Quantidade</label>
+								<div class="col-lg-10">
+									<input type="number" class="form-control" id="inputCalls" placeholder="Quantidade" 
+										   ng-model="controller.parameter.limit" 
+										   ng-disabled="controller.parameter.processing">
+								</div>
+							</div>
+							
+							<div class="form-group">
+								<label for="inputInterval" class="col-lg-2 control-label">Lapso&nbsp;(ms)</label>
+								<div class="col-lg-10">
+									<input type="number" class="form-control" id="inputInterval" placeholder="Lapso" 
+										   ng-model="controller.parameter.lapse" 
+										   ng-disabled="controller.parameter.processing">
+								</div>
+							</div>
+							
+							<div class="form-group">
+								<div class="col-lg-10 col-lg-offset-2">
+									<input type="button" value="Iniciar Teste" class="btn btn-primary" 
+										   ng-click="controller.initTest()" 
+										   ng-disabled="!controller.selectedServer">
+								</div>
+							</div>
+
+							<div class="progress progress-striped active">
+								<div class="progress-bar" ng-style="{width: controller.progress}"></div>
+							</div>
+						</fieldset>
+					</form>
+				</div>
+			</div>
+			
+			<div class="col-lg-6">
+				<blockquote class="blockquote-reverse">
+					<p>Início</p>
+					<small>{{controller.total.begin}}</small>
+
+					<p>Fim</p>
+					<small>{{controller.total.end}}</small>
+
+					<p>Chamadas Efetuadas</p>
+					<small>{{controller.total.calls}}</small>
+
+					<p>Lapso Total (Desprezível)</p>
+					<small>{{controller.total.lapse}} <cite>(ms)</cite> | {{controller.total.lapse / 1000}} <cite>(s)</cite> | {{controller.total.lapse / 1000 / 60}} <cite>(min)</cite></small>
+
+					<p>Tempo Decorrido Total</p>
+					<small>{{controller.total.elapsed}} <cite>(ms)</cite> | {{controller.total.elapsed / 1000}} <cite>(s)</cite> | {{controller.total.elapsed / 1000 / 60}} <cite>(min)</cite></small>
+
+					<!-- <p>Soma Tempo Chamada</p> -->
+					<!-- <small>{{controller.total.sum}} <cite>(ms)</cite> | {{controller.total.sum / 1000}} <cite>(s)</cite> | {{controller.total.sum / 1000 / 60}} <cite>(min)</cite></small> -->
+
+					<p>Tempo Médio Chamada</p>
+					<small>{{controller.total.average}} <cite>(ms)</cite> | {{controller.total.average / 1000}} <cite>(s)</cite> | {{controller.total.average / 1000 / 60}} <cite>(min)</cite></small>
+				</blockquote>
+			</div>
+		</div>
+
+		<ul class="nav nav-tabs">
+			<li class="active"><a href="#details" data-toggle="tab">Detalhes</a></li>
+			<li><a href="#statistic" data-toggle="tab">Amostragem</a></li>
+			<li><a href="#chart" data-toggle="tab">Gráfico</a></li>
+		</ul>
+
+		<div id="tabContent" class="tab-content">
+			<div id="details" class="tab-pane fade active in">
+				<table class="table table-striped table-hover">
+					<thead>
+						<tr>
+							<th class="text-center">#</th>
+							<th class="text-center">Chamada</th>
+							<th>Token</th>
+							<th>Inicio</th>
+							<th>Fim</th>
+							<th>Tempo Decorrido (ms)</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="detail in controller.details">
+							<td class="text-center">{{$index + 1}}</td>
+							<td class="text-center">{{detail.index}}</td>
+							<td>{{detail.token}}</td>
+							<td>{{detail.begin}}</td>
+							<td>{{detail.end}}</td>
+							<td>{{detail.elapsed}}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div id="statistic" class="tab-pane fade">
+				<i>n:</i>
+				<label>{{controller.statistics.n}}</label>
+				<br />
+
+				<i>k:</i>
+				<label>{{controller.statistics.k}}</label>
+				<br />
+
+				<i>max:</i>
+				<label>{{controller.statistics.max}}</label>
+				<br />
+
+				<i>min:</i>
+				<label>{{controller.statistics.min}}</label>
+				<br />
+
+				<i>a:</i>
+				<label>{{controller.statistics.a}}</label>
+				<br />
+
+				<i>h:</i>
+				<label>{{controller.statistics.h}}</label>
+				<br />
+
+				<table class="table table-striped table-hover">
+					<thead>
+						<tr>
+							<th>Classe</th>
+							<th>Intervalo</th>
+							<th>Frequência</th>
+							<th>Percentagem</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="data in controller.statistics.data">
+							<td>{{data.class}}</td>
+							<td>{{data.interval}}</td>
+							<td>{{data.frequency}}</td>
+							<td>{{data.percentage}} %</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div id="chart" class="tab-pane fade">
+				<canvas id="myChart" width="400" height="400"></canvas>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

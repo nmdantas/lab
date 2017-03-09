@@ -21,8 +21,7 @@ var userRouter  = require('./controllers/user');
 //var userSocket  = require('./controllers/user-socket')('/socket/v0/user');
 
 var app = express();
-
-app.use('/public', express.static(__dirname + '/benchmark'));
+app.use('/public', express.static(__dirname + '/public'));
 
 // Entender como funciona esta linha
 //app.use(bodyParser.urlencoded({ extended : true })); 
